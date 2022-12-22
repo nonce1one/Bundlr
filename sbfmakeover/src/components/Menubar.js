@@ -12,16 +12,16 @@ function Menubar({
   handleLineWidth,
   undoCount,
   undo,
-  undoStrokeArray,
+  currentImage,
 }) {
-  const targetNetworkId = 5;
+  const targetNetworkId = 80001;
   const bundlrEndpoint = 'https://devnet.bundlr.network';
   //testnet1
   let provider;
 
-  const [curreny, setCurrancy] = useState('ethereum');
+  const [curreny, setCurrancy] = useState('matic');
   const [bundlrInstance, setBundlrInstance] = useState();
-  const [bundlrBalance, setbundlrBalance] = useState(0);
+  const [bundlrBalance, setbundlrBalance] = useState();
   const [balance, setBalance] = useState(0);
   const [account, setAccount] = useState();
   const [network, setNetwork] = useState();
@@ -30,10 +30,10 @@ function Menubar({
   const providerRef = useRef();
 
   const [file, setFile] = useState();
-  const [fileCost, setFileCost] = useState();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState();
   const [fileUploaded, setFileUploaded] = useState(false);
   const [URI, setURI] = useState();
+  const mintCostRef = useRef(0);
 
   useEffect(() => {
     fetch('/bundlr')
@@ -54,8 +54,8 @@ function Menubar({
     console.log(`Provider Ready! > ${provider}`);
 
     const bundlr = new WebBundlr(bundlrEndpoint, curreny, provider, {
-      providerUrl: `https://goerli.infura.io/v3/97dc288a798e4597a6ec79d4fcbbf383`,
-      address: '0x853758425e953739F5438fd6fd0Efe04A477b039',
+      providerUrl: `https://polygon-mumbai.g.alchemy.com/v2/SBCRHHsDrSM2OzTJurw_Fs0arSA1Xpo2`,
+      address: '0x474E7A206bd6186B0C51ad9b1D406c12c4fed9c1',
     });
     //
     //Goerli
@@ -118,36 +118,23 @@ function Menubar({
   };
 
   //-----
-  /*CHECK UPLOAD COST TO BUNDLR */
+  //**GET MINT PRICE & UPDATE*/
   //-----
-  const checkUploadCost = async (f) => {
-    const bytes = f.length;
-    console.log(`image is : ${bytes} bytes`);
-    const cost = await bundlrInstance.getPrice(f.length);
-    console.log(`cost is: ${utils.formatEther(cost.toString())}`);
-    setFileCost(utils.formatEther(cost.toString()));
-    if (cost > bundlrBalance) {
-      console.log(`not enough balance`);
-    } else {
-      console.log(`enough balance`);
-    }
-  };
-
-  const fundBundlr = async (f) => {
-    await checkUploadCost(f);
-    try {
-      const price = await bundlrInstance.getPrice(f.length * 2);
-      console.log(`funding bundlr with: ${price} & ${price}`);
-      const res = await bundlrInstance.fund(price);
-      console.log(`fund response ${res}`);
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   useEffect(() => {
-    console.log(`image can be viewed at: http://www.areweave.net/${URI}}`);
-  }, [URI]);
+    console.log(currentImage[currentImage.length - 1]);
+    console.log(bundlrInstance);
+    const getCost = async () => {
+      if (bundlrInstance) {
+        const cost = await bundlrInstance.getPrice(
+          currentImage[currentImage.length - 1].length
+        );
+        mintCostRef.current = cost;
+        console.log(mintCostRef.current);
+      }
+    };
+    getCost();
+  }, [currentImage]);
 
   //-----
   //**MINT TOKEN CALL */
@@ -155,6 +142,7 @@ function Menubar({
 
   const handleUpload = async () => {
     let f = handleDownload();
+    setFile(f);
     upload(f);
   };
 
@@ -178,10 +166,19 @@ function Menubar({
 
     // If you don't have enough balance for the upload
     if (balance.isLessThan(price)) {
-      // Fund your account with the difference
-      // We multiply by 1.1 to make sure we don't run out of funds
-      const funding = await bundlrInstance.fund(price, 1.2);
-      console.log({ ...funding });
+      let funding = price.minus(balance);
+      try {
+        // Fund your account with the difference
+        // We multiply by 1.1 to make sure we don't run out of funds
+        funding = await bundlrInstance.fund(funding, 1.3);
+        console.log({ ...funding });
+      } catch (error) {
+        console.error(error);
+        if (error.code === -32603) {
+          funding = await bundlrInstance.fund(funding, 1.3);
+          console.log({ ...funding });
+        }
+      }
     }
 
     // Create, sign and upload the transaction
@@ -189,13 +186,17 @@ function Menubar({
     const tx = bundlrInstance.createTransaction(nftJSON, { tags });
     await tx.sign();
     try {
-      await tx.upload();
+      const receipt = await tx.upload(true);
       const id = tx.id;
-      console.log(id);
+      console.log(id, { ...receipt });
     } catch (error) {
       console.error(error);
     }
   }
+
+  useEffect(() => {
+    console.log(`image can be viewed at: http://www.areweave.net/${URI}}`);
+  }, [file]);
 
   return (
     <div className="Menu">
@@ -213,20 +214,17 @@ function Menubar({
         onChange={(e) => handleLineWidth(e.target.value)}
       />
 
+      <p>{!mintCostRef.current ? null : `Mint cost: ${mintCostRef.current}`}</p>
+
       <button disabled={undoCount === 1} className="btn" onClick={undo}>
         Undo
       </button>
       <button className="btn" onClick={fetchBalance}>
         Get bundlr balance
       </button>
-      <a
-        className="btn"
-        download="image.png"
-        onClick={handleUpload}
-        href={dataUrl}
-      >
+      <button className="btn" onClick={handleUpload} href={dataUrl}>
         Mint
-      </a>
+      </button>
       <button className="btn" onClick={initWallet}>
         Connect
       </button>

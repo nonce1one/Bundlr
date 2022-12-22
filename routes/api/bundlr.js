@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Bundlr = require('@bundlr-network/client');
-const dotenv = require('dotenv');
-
-dotenv.config();
+const WebBundlr = require('@bundlr-network/client/build/web');
+require('dotenv').config();
 
 let serverBundlr;
 

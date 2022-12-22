@@ -108,7 +108,7 @@ function App() {
         handleLineWidth={handleLineWidth}
         undo={undo}
         undoCount={undoCount}
-        undoStrokeArray={undoStrokeArray[-1]}
+        currentImage={undoStrokeArray}
       />
       <canvas
         style={{ cursor }}
