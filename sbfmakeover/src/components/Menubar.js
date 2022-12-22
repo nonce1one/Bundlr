@@ -103,8 +103,6 @@ function Menubar({
     }
   }
 
-  const test = true;
-
   //-----
   //**GET BUNDLR & ETHER BALANCES PRE-MINT*/
   //-----
