@@ -19,7 +19,7 @@ function Menubar({
   //testnet1
   let provider;
 
-  const [curreny, setCurrancy] = useState('matic');
+  const [currency, setCurrency] = useState('matic');
   const [bundlrInstance, setBundlrInstance] = useState();
   const [bundlrBalance, setbundlrBalance] = useState();
   const [balance, setBalance] = useState(0);
@@ -53,7 +53,7 @@ function Menubar({
     await provider._ready();
     console.log(`Provider Ready! > ${provider}`);
 
-    const bundlr = new WebBundlr(bundlrEndpoint, curreny, provider, {
+    const bundlr = new WebBundlr(bundlrEndpoint, currency, provider, {
       providerUrl: `https://polygon-mumbai.g.alchemy.com/v2/SBCRHHsDrSM2OzTJurw_Fs0arSA1Xpo2`,
       address: '0x474E7A206bd6186B0C51ad9b1D406c12c4fed9c1',
     });
@@ -109,12 +109,14 @@ function Menubar({
 
   const fetchBalance = async () => {
     const bal = await bundlrRef.current.getLoadedBalance();
-    console.log(`Bundlr balance: ${utils.formatEther(bal.toString())}`);
+    const balConvert = bundlrRef.current.utils.unitConverter(bal);
+    console.log(`Bundlr balance: ${bal}`);
     setbundlrBalance(utils.formatEther(bal.toString()));
-    const ethbal = bundlrRef.current.address;
-    const balance = await providerRef.current.getBalance(ethbal);
-    setBalance(utils.formatEther(balance.toString()));
-    console.log(`${curreny} balance: ${utils.formatEther(balance.toString())}`);
+    const maticAccount = bundlrRef.current.address;
+    const maticBalance = await providerRef.current.getBalance(maticAccount);
+    const maticBalConvert = utils.formatEther(maticBalance);
+    console.log(`${currency} balance: ${maticBalConvert}`);
+    setBalance(utils.formatEther(maticBalance.toString()));
   };
 
   //-----
@@ -122,19 +124,17 @@ function Menubar({
   //-----
 
   useEffect(() => {
-    console.log(currentImage[currentImage.length - 1]);
-    console.log(bundlrInstance);
     const getCost = async () => {
       if (bundlrInstance) {
         const cost = await bundlrInstance.getPrice(
           currentImage[currentImage.length - 1].length
         );
-        mintCostRef.current = cost;
-        console.log(mintCostRef.current);
+        mintCostRef.current = bundlrInstance.utils.unitConverter(cost);
+        console.log(`Minimum ${currency} required: ${mintCostRef.current}`);
       }
     };
     getCost();
-  }, [currentImage]);
+  }, [currentImage, bundlrInstance, currency]);
 
   //-----
   //**MINT TOKEN CALL */
@@ -147,6 +147,8 @@ function Menubar({
   };
 
   async function upload(f) {
+    setFileUploaded(false);
+    setIsLoading('Funding Bundlr Account...');
     const nftURI = {
       name: 'SBFmakeover',
       image: f,
@@ -156,11 +158,13 @@ function Menubar({
     // console.log(buf);
     // // Get the cost for upload
     const price = await bundlrInstance.getPrice(tokenURI.size);
+    const priceConvert = bundlrInstance.utils.unitConverter(price);
     // Get your current balance
     const balance = await bundlrInstance.getLoadedBalance();
+    const balanceConvert = bundlrInstance.utils.unitConverter(balance);
     console.log(
-      `current fund balance is: ${balance}; current upload price: ${price}; needed: ${
-        price - balance
+      `current fund balance is: ${balanceConvert}; current upload price: ${priceConvert}; needed: ${
+        priceConvert - balanceConvert
       }`
     );
 
@@ -182,20 +186,23 @@ function Menubar({
     }
 
     // Create, sign and upload the transaction
+    setIsLoading('Bundling makeover for Arweave upload...');
     const tags = [{ name: 'Content-Type', value: 'application/json' }];
     const tx = bundlrInstance.createTransaction(nftJSON, { tags });
     await tx.sign();
+    setIsLoading('uploading...');
     try {
-      const receipt = await tx.upload(true);
-      const id = tx.id;
-      console.log(id, { ...receipt });
+      let receipt = await tx.upload(true);
+      setFile(receipt.id);
     } catch (error) {
       console.error(error);
     }
+    setIsLoading();
+    setFileUploaded(true);
   }
 
   useEffect(() => {
-    console.log(`image can be viewed at: http://www.areweave.net/${URI}}`);
+    console.log(`image can be viewed at: https://www.arweave.net/${file}`);
   }, [file]);
 
   return (
