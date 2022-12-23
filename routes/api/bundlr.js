@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Bundlr = require('@bundlr-network/client');
-const WebBundlr = require('@bundlr-network/client/build/web');
+const ethers = require('ethers');
 require('dotenv').config();
 
 router.get('/', async (req, res) => {

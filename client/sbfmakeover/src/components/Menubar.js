@@ -177,25 +177,23 @@ function Menubar({
     const balance = await bundlrInstance.getLoadedBalance();
     const balanceConvert = bundlrInstance.utils.unitConverter(balance);
     const balConvertFixed = balanceConvert.toFixed();
-    const fundsNeeded = (priceConvert - balanceConvert).toFixed();
+    const fundsNeeded = priceConvert - balanceConvert;
     console.log(
-      `current fund balance is: ${balConvertFixed}; current upload price: ${priceConvertFixed}; needed: ${
-        priceConvert - balanceConvert
-      }`
+      `current fund balance is: ${balConvertFixed}; current upload price: ${priceConvertFixed}; needed: ${fundsNeeded}`
     );
 
     // If you don't have enough balance for the upload
     if (balance.isLessThan(price)) {
-      let funding = price.minus(balance);
+      let funding = price.minus(balance).multipliedBy(2);
       try {
         // Fund your account with the difference
         // We multiply by 1.1 to make sure we don't run out of funds
-        funding = await bundlrInstance.fund(funding, 3);
+        funding = await bundlrInstance.fund(funding);
         console.log({ ...funding });
       } catch (error) {
         console.error(error);
         if (error.code === -32603) {
-          funding = await bundlrInstance.fund(funding, 3);
+          funding = await bundlrInstance.fund(funding);
           console.log({ ...funding });
         }
       }
