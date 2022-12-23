@@ -5,7 +5,6 @@ html, body, main {
 }
 
 section {
-    height: 100%;
     display: flex;
     flex-flow: row wrap;
     justify-content: center;
@@ -16,9 +15,11 @@ canvas {
     align-self: center;
 }
 
-.Menu {
+.Menu .console {
     display: flex;
+    flex-flow: row wrap;
     justify-content: center;
+    align-content: center;
     align-items: center;
 }
 

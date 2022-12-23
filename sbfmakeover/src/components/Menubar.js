@@ -32,6 +32,7 @@ function Menubar({
   const [file, setFile] = useState();
   const [isLoading, setIsLoading] = useState();
   const [fileUploaded, setFileUploaded] = useState(false);
+  const [mintCost, setMintCost] = useState(0);
   const [URI, setURI] = useState();
   const mintCostRef = useRef(0);
 
@@ -110,7 +111,7 @@ function Menubar({
   const fetchBalance = async () => {
     const bal = await bundlrRef.current.getLoadedBalance();
     const balConvert = bundlrRef.current.utils.unitConverter(bal);
-    console.log(`Bundlr balance: ${bal}`);
+    console.log(`Bundlr balance: ${balConvert.toFixed()}`);
     setbundlrBalance(utils.formatEther(bal.toString()));
     const maticAccount = bundlrRef.current.address;
     const maticBalance = await providerRef.current.getBalance(maticAccount);
@@ -120,7 +121,7 @@ function Menubar({
   };
 
   //-----
-  //**GET MINT PRICE & UPDATE*/
+  //**UPDATE MINT PRICE & CONSOLE*/
   //-----
 
   useEffect(() => {
@@ -130,6 +131,7 @@ function Menubar({
           currentImage[currentImage.length - 1].length
         );
         mintCostRef.current = bundlrInstance.utils.unitConverter(cost);
+        setMintCost(mintCostRef.current);
         console.log(`Minimum ${currency} required: ${mintCostRef.current}`);
       }
     };
@@ -161,7 +163,9 @@ function Menubar({
     const priceConvert = bundlrInstance.utils.unitConverter(price);
     // Get your current balance
     const balance = await bundlrInstance.getLoadedBalance();
-    const balanceConvert = bundlrInstance.utils.unitConverter(balance);
+    const balanceConvert = bundlrInstance.utils
+      .unitConverter(balance)
+      .toFixed();
     console.log(
       `current fund balance is: ${balanceConvert}; current upload price: ${priceConvert}; needed: ${
         priceConvert - balanceConvert
@@ -174,12 +178,12 @@ function Menubar({
       try {
         // Fund your account with the difference
         // We multiply by 1.1 to make sure we don't run out of funds
-        funding = await bundlrInstance.fund(funding, 1.3);
+        funding = await bundlrInstance.fund(funding, 3);
         console.log({ ...funding });
       } catch (error) {
         console.error(error);
         if (error.code === -32603) {
-          funding = await bundlrInstance.fund(funding, 1.3);
+          funding = await bundlrInstance.fund(funding, 3);
           console.log({ ...funding });
         }
       }
@@ -191,51 +195,70 @@ function Menubar({
     const tx = bundlrInstance.createTransaction(nftJSON, { tags });
     await tx.sign();
     setIsLoading('uploading...');
-    try {
-      let receipt = await tx.upload(true);
-      setFile(receipt.id);
-    } catch (error) {
-      console.error(error);
-    }
+    await uploadTransaction(tx);
     setIsLoading();
     setFileUploaded(true);
   }
+
+  const uploadTransaction = async (tx) => {
+    let count = 0;
+    let maxAttempts = 10;
+    while (count < maxAttempts) {
+      try {
+        let receipt = await tx.upload(true);
+        setFile(receipt.id);
+        return;
+      } catch (error) {
+        console.log('retrying upload');
+        let receipt = await tx.upload(true);
+        setFile(receipt.id);
+        count = count++;
+      }
+    }
+  };
 
   useEffect(() => {
     console.log(`image can be viewed at: https://www.arweave.net/${file}`);
   }, [file]);
 
   return (
-    <div className="Menu">
-      <p>{!data ? 'Loading...' : data}</p>
+    <section>
+      {' '}
+      <div className="console">
+        <p>{!mintCost ? null : `Minimum MATIC needed: ${mintCost}`}</p>
 
-      <label>Brush Color </label>
-      <input type="color" onChange={(e) => handleColorChange(e.target.value)} />
+        <button className="btn" onClick={fetchBalance}>
+          Get bundlr balance
+        </button>
+        <button className="btn" onClick={handleUpload} href={dataUrl}>
+          Mint
+        </button>
+        <button className="btn" onClick={initWallet}>
+          Connect
+        </button>
+      </div>
+      <div className="Menu">
+        <p>{!data ? 'Loading...' : data}</p>
 
-      <label>Brush Width </label>
-      <input
-        type="range"
-        min="3"
-        max="50"
-        defaultValue="10"
-        onChange={(e) => handleLineWidth(e.target.value)}
-      />
+        <label>Brush Color </label>
+        <input
+          type="color"
+          onChange={(e) => handleColorChange(e.target.value)}
+        />
 
-      <p>{!mintCostRef.current ? null : `Mint cost: ${mintCostRef.current}`}</p>
-
-      <button disabled={undoCount === 1} className="btn" onClick={undo}>
-        Undo
-      </button>
-      <button className="btn" onClick={fetchBalance}>
-        Get bundlr balance
-      </button>
-      <button className="btn" onClick={handleUpload} href={dataUrl}>
-        Mint
-      </button>
-      <button className="btn" onClick={initWallet}>
-        Connect
-      </button>
-    </div>
+        <label>Brush Width </label>
+        <input
+          type="range"
+          min="3"
+          max="50"
+          defaultValue="10"
+          onChange={(e) => handleLineWidth(e.target.value)}
+        />
+        <button disabled={undoCount === 1} className="btn" onClick={undo}>
+          Undo
+        </button>
+      </div>
+    </section>
   );
 }
 
