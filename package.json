@@ -4,14 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon server/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node client/sbfmakeover run start",
+    "server": "nodemon server/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "concurrently \"npm run server\" \"npm run start\""
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@bundlr-network/client": "^0.9.11",
     "axios": "^1.2.1",
+    "concurrently": "^7.6.0",
     "dotenv": "^16.0.3",
     "ethers": "^5.7.2",
     "express": "^4.18.2",
