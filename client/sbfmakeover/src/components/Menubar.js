@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import '../App.css';
 import Bundlr, { WebBundlr } from '@bundlr-network/client';
 import { ethers, utils, providers } from 'ethers';
-import fs from 'fs';
+
+import axios from 'axios';
 import BundlrTransaction from '@bundlr-network/client/build/common/transaction';
 
 function Menubar({
@@ -37,10 +38,21 @@ function Menubar({
   const mintCostRef = useRef(0);
 
   useEffect(() => {
-    fetch('/bundlr')
-      .then((res) => res.json())
-      .then((data) => setData(data.message));
+    const callAPI = async () => {
+      const serverData = await connectAPI();
+      setData(serverData);
+    };
+    callAPI();
   }, []);
+
+  const connectAPI = async () => {
+    try {
+      const response = await axios.get('/bundlr');
+      return response.data.message;
+    } catch (error) {
+      console.error(`API error: ${error}`);
+    }
+  };
 
   const initWallet = async () => {
     if (!window.ethereum) return;
@@ -144,7 +156,6 @@ function Menubar({
 
   const handleUpload = async () => {
     let f = handleDownload();
-    setFile(f);
     upload(f);
   };
 
@@ -161,13 +172,14 @@ function Menubar({
     // // Get the cost for upload
     const price = await bundlrInstance.getPrice(tokenURI.size);
     const priceConvert = bundlrInstance.utils.unitConverter(price);
+    const priceConvertFixed = priceConvert.toFixed();
     // Get your current balance
     const balance = await bundlrInstance.getLoadedBalance();
-    const balanceConvert = bundlrInstance.utils
-      .unitConverter(balance)
-      .toFixed();
+    const balanceConvert = bundlrInstance.utils.unitConverter(balance);
+    const balConvertFixed = balanceConvert.toFixed();
+    const fundsNeeded = (priceConvert - balanceConvert).toFixed();
     console.log(
-      `current fund balance is: ${balanceConvert}; current upload price: ${priceConvert}; needed: ${
+      `current fund balance is: ${balConvertFixed}; current upload price: ${priceConvertFixed}; needed: ${
         priceConvert - balanceConvert
       }`
     );
@@ -201,19 +213,11 @@ function Menubar({
   }
 
   const uploadTransaction = async (tx) => {
-    let count = 0;
-    let maxAttempts = 10;
-    while (count < maxAttempts) {
-      try {
-        let receipt = await tx.upload(true);
-        setFile(receipt.id);
-        return;
-      } catch (error) {
-        console.log('retrying upload');
-        let receipt = await tx.upload(true);
-        setFile(receipt.id);
-        count = count++;
-      }
+    try {
+      let receipt = await tx.upload(true);
+      setFile(receipt.id);
+    } catch (error) {
+      console.log(error);
     }
   };
 
