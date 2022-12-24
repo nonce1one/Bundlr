@@ -37,22 +37,22 @@ function Menubar({
   const [URI, setURI] = useState();
   const mintCostRef = useRef(0);
 
-  useEffect(() => {
-    const callAPI = async () => {
-      const serverData = await connectAPI();
-      setData(serverData);
-    };
-    callAPI();
-  }, []);
+  // useEffect(() => {
+  //   const callAPI = async () => {
+  //     const serverData = await connectAPI();
+  //     setData(serverData);
+  //   };
+  //   callAPI();
+  // }, []);
 
-  const connectAPI = async () => {
-    try {
-      const response = await axios.get('/bundlr');
-      return response.data.message;
-    } catch (error) {
-      console.error(`API error: ${error}`);
-    }
-  };
+  // const connectAPI = async () => {
+  //   try {
+  //     const response = await axios.get('/mint');
+  //     return response.data.message;
+  //   } catch (error) {
+  //     console.error(`API error: ${error}`);
+  //   }
+  // };
 
   const initWallet = async () => {
     if (!window.ethereum) return;
@@ -220,7 +220,9 @@ function Menubar({
   };
 
   useEffect(() => {
-    console.log(`image can be viewed at: https://www.arweave.net/${file}`);
+    if (file) {
+      console.log(`image can be viewed at: https://www.arweave.net/${file}`);
+    }
   }, [file]);
 
   return (
