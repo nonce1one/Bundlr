@@ -8,11 +8,9 @@ const abi = ABI.abi;
 
 const provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545/');
 const signer = new ethers.Wallet(process.env.TEST_PRIVATE_KEY_2);
-signer.getAddress().then((res) => console.log(`signer: ${res}`));
 const signerConnected = signer.connect(provider);
 const Signer = provider.getSigner();
-Signer.getAddress().then((res) => console.log(`Signer: ${res}`));
-console.log(Signer);
+
 const oldContract = new ethers.Contract(contractAddress, abi, Signer);
 const contract = oldContract.connect(signerConnected);
 

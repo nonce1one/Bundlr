@@ -242,7 +242,6 @@ function Menubar({
         </button>
       </div>
       <div className="Menu">
-        <p>{!data ? 'Loading...' : data}</p>
 
         <label>Brush Color </label>
         <input
